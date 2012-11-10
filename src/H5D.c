@@ -520,16 +520,18 @@ SEXP _H5Dread( SEXP _dataset_id, SEXP _file_space_id, SEXP _mem_space_id, SEXP _
   hsize_t size[rank];
   hsize_t maxsize[rank];
   H5Sget_simple_extent_dims(mem_space_id, size, maxsize);
-  hsize_t n = 0;
-  if (rank > 0) {
-    n = size[0];
-    for (int i=1; i < rank; i++) {
-      n = n * size[i];
-    }
+  hsize_t n = 1;
+  for (int i=0; i < rank; i++) {
+    n = n * size[i];
   }
-  SEXP Rdim = PROTECT(allocVector(INTSXP, rank));
-  for (int i=0; i<rank; i++) {
-    INTEGER(Rdim)[i] = size[i];
+  SEXP Rdim;
+  if (rank > 0) {
+    Rdim = PROTECT(allocVector(INTSXP, rank));
+    for (int i=0; i<rank; i++) {
+      INTEGER(Rdim)[i] = size[i];
+    }
+  } else {
+    Rdim = NULL_USER_OBJECT;
   }
 
   /***********************************************************************/
@@ -542,7 +544,9 @@ SEXP _H5Dread( SEXP _dataset_id, SEXP _file_space_id, SEXP _mem_space_id, SEXP _
   if (length(_mem_space_id) == 0) {
     H5Sclose(mem_space_id);
   }
-  UNPROTECT(1);
+  if (rank > 0) {
+    UNPROTECT(1);
+  }
 
   // close file space 
   if (length(_file_space_id) == 0) {
