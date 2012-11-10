@@ -350,23 +350,24 @@ SEXP _H5Aread( SEXP _attr_id, SEXP _buf ) {
   /***********************************************************************/
   /* create mem_space_id                                                 */
   /***********************************************************************/
-  hsize_t n = 0;
+  hsize_t n = 1;
   hid_t mem_space_id;
   SEXP Rdim;
-  if (rank > 0) {
-    n = size[0];
-    for (int i=1; i < rank; i++) {
+  for (int i=0; i < rank; i++) {
       n = n * size[i];
-    }
   }
   hsize_t dims[rank];
   for (int i=0; i<rank; i++) {
     dims[i] = size[rank-i-1];
   }
   mem_space_id = H5Screate_simple( rank, dims, dims);
-  Rdim = PROTECT(allocVector(INTSXP, rank));
-  for (int i=0; i<rank; i++) {
-    INTEGER(Rdim)[i] = dims[i];
+  if (rank > 0) {
+    Rdim = PROTECT(allocVector(INTSXP, rank));
+    for (int i=0; i<rank; i++) {
+      INTEGER(Rdim)[i] = dims[i];
+    }
+  } else {
+    Rdim = NULL_USER_OBJECT;
   }
 
   /***********************************************************************/
@@ -377,7 +378,9 @@ SEXP _H5Aread( SEXP _attr_id, SEXP _buf ) {
 
   // close mem space
   H5Sclose(mem_space_id);
-  UNPROTECT(1);
+  if (rank > 0) {
+    UNPROTECT(1);
+  }
 
   // close file space
   H5Sclose(file_space_id);
