@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "H5A.h"
 
 /*################################*/
@@ -195,26 +196,26 @@ SEXP H5Aread_helper_STRING(hid_t attr_id, hsize_t n, SEXP Rdim, SEXP _buf, hid_t
 
   SEXP Rval;
   size_t size = H5Tget_size(dtype_id);
+  /* if (cpdType < 0) { */
+    mem_type_id = dtype_id;
+  /* } else { */
+  /*   mem_type_id = H5Tcreate(H5T_COMPOUND, size); */
+  /*   herr_t status = H5Tinsert(mem_type_id, cpdField[0], 0, dtype_id); */
+  /*   for (int i=1; i<cpdNField; i++) { */
+  /* 	hid_t mem_type_id2 = H5Tcreate(H5T_COMPOUND, size); */
+  /* 	herr_t status = H5Tinsert(mem_type_id2, cpdField[i], 0, mem_type_id); */
+  /* 	mem_type_id = mem_type_id2; */
+  /*   } */
+  /* } */
+  Rval = PROTECT(allocVector(STRSXP, n));
   if (H5Tis_variable_str(dtype_id)) {
-    printf("Warning: h5read for variable length strings not yet implemented. Replacing strings by NA's\n");
-    double na = R_NaReal;
-    Rval = PROTECT(allocVector(REALSXP, n));
-    for (int i=0; i<n; i++) { REAL(Rval)[i] = na; }
-    setAttrib(Rval, R_DimSymbol, Rdim);
-    UNPROTECT(1);
-    /* Rval = R_NilValue; */
+    char *bufSTR[n];
+    herr_t herr = H5Aread(attr_id, mem_type_id, bufSTR );
+    for (int i=0; i<n; i++) {
+      SET_STRING_ELT(Rval, i, mkChar(bufSTR[i]));
+      free(bufSTR[i]);
+    }
   } else {
-    /* if (cpdType < 0) { */
-      mem_type_id = dtype_id;
-    /* } else { */
-    /*   mem_type_id = H5Tcreate(H5T_COMPOUND, size); */
-    /*   herr_t status = H5Tinsert(mem_type_id, cpdField[0], 0, dtype_id); */
-    /*   for (int i=1; i<cpdNField; i++) { */
-    /* 	hid_t mem_type_id2 = H5Tcreate(H5T_COMPOUND, size); */
-    /* 	herr_t status = H5Tinsert(mem_type_id2, cpdField[i], 0, mem_type_id); */
-    /* 	mem_type_id = mem_type_id2; */
-    /*   } */
-    /* } */
     char bufSTR[n][size];
     herr_t herr = H5Aread(attr_id, mem_type_id, bufSTR );
     char bufSTR2[n][size+1];
@@ -225,13 +226,12 @@ SEXP H5Aread_helper_STRING(hid_t attr_id, hsize_t n, SEXP Rdim, SEXP _buf, hid_t
       bufSTR2[i][size] = '\0';
     }
 
-    Rval = PROTECT(allocVector(STRSXP, n));
     for (int i=0; i<n; i++) {
       SET_STRING_ELT(Rval, i, mkChar(bufSTR2[i]));
     }
-    setAttrib(Rval, R_DimSymbol, Rdim);
-    UNPROTECT(1);
   }
+  setAttrib(Rval, R_DimSymbol, Rdim);
+  UNPROTECT(1);
   return(Rval);
 }
 
