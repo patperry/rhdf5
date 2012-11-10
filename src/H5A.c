@@ -217,9 +217,17 @@ SEXP H5Aread_helper_STRING(hid_t attr_id, hsize_t n, SEXP Rdim, SEXP _buf, hid_t
     /* } */
     char bufSTR[n][size];
     herr_t herr = H5Aread(attr_id, mem_type_id, bufSTR );
+    char bufSTR2[n][size+1];
+    for (int i=0; i<n; i++) {
+      for (int j=0; j<size; j++) {
+        bufSTR2[i][j] = bufSTR[i][j];
+      }
+      bufSTR2[i][size] = '\0';
+    }
+
     Rval = PROTECT(allocVector(STRSXP, n));
     for (int i=0; i<n; i++) {
-      SET_STRING_ELT(Rval, i, mkChar(bufSTR[i]));
+      SET_STRING_ELT(Rval, i, mkChar(bufSTR2[i]));
     }
     setAttrib(Rval, R_DimSymbol, Rdim);
     UNPROTECT(1);
